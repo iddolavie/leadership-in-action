@@ -476,8 +476,27 @@ function HomePage({onStart}){
 }
 
 function StepPage({stepNum,data,setData,onNext,onBack}){
+  const [error,setError]=useState("");
   const config=STEPS_CONFIG[stepNum-1];
   const questions=STEP_QUESTIONS[stepNum];
+
+  const handleNext=()=>{
+    if(data.photo===undefined){
+      setError("יש לבחור תמונה לפני שממשיכים ←");
+      return;
+    }
+    for(const q of questions){
+      if(q.type==="slider")continue;
+      const val=data[q.key];
+      if(!val||(Array.isArray(val)&&val.length===0)||(typeof val==="string"&&val.trim()==="")){
+        setError("יש למלא את כל השדות לפני שממשיכים ←");
+        return;
+      }
+    }
+    setError("");
+    onNext();
+  };
+
   return(
     <div style={{minHeight:"100vh",background:C.bg,padding:"32px 20px 28px",direction:"rtl",fontFamily:FONT}}>
       <div style={{maxWidth:500,margin:"0 auto"}}>
@@ -494,14 +513,20 @@ function StepPage({stepNum,data,setData,onNext,onBack}){
             <p style={{color:C.white,fontSize:13,lineHeight:1.8,margin:0,fontFamily:FONT}}>{config.instruction}</p>
           </div>
         </div>
-        <PhotoGallery selected={data.photo} onSelect={i=>setData({...data,photo:i})}/>
+        <PhotoGallery selected={data.photo} onSelect={i=>{setData({...data,photo:i});setError("");}}/>
         <div style={{background:C.bgCard,borderRadius:14,padding:"20px 16px",marginBottom:20}}>
-          {questions.map(q=><QuestionBlock key={q.key} q={q} data={data} setData={setData}/>)}
+          {questions.map(q=><QuestionBlock key={q.key} q={q} data={data} setData={d=>{setData(d);setError("");}}/>)}
         </div>
+        {error&&(
+          <div style={{background:"#8B2020",color:C.white,borderRadius:10,padding:"12px 16px",
+            textAlign:"right",fontFamily:FONT,fontSize:14,marginBottom:12}}>
+            {error}
+          </div>
+        )}
         <div style={{display:"flex",gap:10}}>
           <button onClick={onBack} style={{flex:1,background:C.bgCard,color:C.white,border:"none",
             borderRadius:12,padding:"14px",fontSize:14,fontFamily:FONT,cursor:"pointer"}}>חזור</button>
-          <button onClick={onNext} style={{flex:3,background:C.yellow,color:C.dark,border:"none",
+          <button onClick={handleNext} style={{flex:3,background:C.yellow,color:C.dark,border:"none",
             borderRadius:12,padding:"14px",fontSize:14,fontFamily:FONT,cursor:"pointer",fontWeight:700}}>{config.nextLabel} ←</button>
         </div>
         <Footer/>
