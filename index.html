@@ -377,15 +377,21 @@ function TagSelector({options,selected=[],onChange,max}){
 
 function SliderInput({value=5,onChange}){
   const labels=["נמוך מאוד","נמוך","בינוני","גבוה","גבוה מאוד"];
+  // Invert internally so: RIGHT=low(1), LEFT=high(10), drag-left=increase
+  const internal=11-value;
+  const handleChange=e=>{
+    const raw=Number(e.target.value);
+    onChange(11-raw);
+  };
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-        <span style={{color:C.muted,fontSize:11,fontFamily:FONT}}>{labels[0]}</span>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:6,direction:"ltr"}}>
+        <span style={{color:C.muted,fontSize:11,fontFamily:FONT}}>{"גבוה מאוד"}</span>
         <span style={{color:C.yellow,fontWeight:700,fontSize:16,fontFamily:FONT}}>{value}/10</span>
-        <span style={{color:C.muted,fontSize:11,fontFamily:FONT}}>{labels[4]}</span>
+        <span style={{color:C.muted,fontSize:11,fontFamily:FONT}}>{"נמוך מאוד"}</span>
       </div>
-      <input type="range" min="1" max="10" value={value} style={{direction:"ltr"}}
-        onChange={e=>onChange(Number(e.target.value))}/>
+      <input type="range" min="1" max="10" value={internal} style={{direction:"ltr"}}
+        onChange={handleChange}/>
       <div style={{textAlign:"center",marginTop:4,color:C.muted,fontSize:12,fontFamily:FONT}}>{labels[Math.floor((value-1)/2)]}</div>
     </div>
   );
