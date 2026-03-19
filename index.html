@@ -103,6 +103,7 @@ const STEP_QUESTIONS = {
     {key:"teamIdeal",label:"מה הרכב הצוות האידיאלי בעיניך?",placeholder:"בצוות שלי יש...",type:"textarea"},
     {key:"goal",     label:"מה המטרה שהיית רוצה להגיע אליה עם הצוות שלך?",placeholder:"אני רוצה להגיע למצב שבו...",type:"textarea"},
     {key:"tomorrow", label:"מה הפעולה הראשונה שתעשה מחר בבוקר?",subtitle:"ספציפי וניתן לביצוע",placeholder:"מחר בבוקר אני אעשה...",type:"textarea"},
+    {key:"belief",  label:"כמה אתה מאמין שתוכל לייצר שינוי?",type:"slider"},
   ],
 };
 
@@ -111,8 +112,8 @@ const STEP_QUESTIONS = {
 // =====================
 async function generateSummaryCanvas(allData, insights, closingNote) {
   const W = 800, PAD = 28, INNER = 16, LH = 22;
-  const SLIDERS = {1:"impact",2:"pressure",3:"worry"};
-  const SLIDER_LBL = {1:"מד השפעה",2:"מד לחץ",3:"מד חשש"};
+  const SLIDERS = {1:"impact",2:"pressure",3:"worry",4:"belief"};
+  const SLIDER_LBL = {1:"מד השפעה",2:"מד לחץ",3:"מד חשש",4:"מד אמונה"};
 
   // Skip font pre-loading (can hang on mobile) — canvas uses system font
 
@@ -510,8 +511,8 @@ function StepPage({stepNum,data,setData,onNext,onBack}){
 }
 
 function SummaryPage({allData,insights,setInsights,closingNote,setClosingNote,onRestart}){
-  const SLIDERS={1:"impact",2:"pressure",3:"worry"};
-  const SLDR_LBL={1:"מד השפעה",2:"מד לחץ",3:"מד חשש"};
+  const SLIDERS={1:"impact",2:"pressure",3:"worry",4:"belief"};
+  const SLDR_LBL={1:"מד השפעה",2:"מד לחץ",3:"מד חשש",4:"מד אמונה"};
   const [copyMsg,setCopyMsg]=useState("");
   const [shareModal,setShareModal]=useState(false);
   const [imgSrc,setImgSrc]=useState(null);
@@ -813,7 +814,7 @@ function SummaryPage({allData,insights,setInsights,closingNote,setClosingNote,on
 // =====================
 // MAIN APP
 // =====================
-const defaultData=()=>({1:{photo:undefined,impact:3},2:{photo:undefined,pressure:3},3:{photo:undefined,worry:3},4:{photo:undefined}});
+const defaultData=()=>({1:{photo:undefined,impact:3},2:{photo:undefined,pressure:3},3:{photo:undefined,worry:3},4:{photo:undefined,belief:3}});
 
 function App(){
   const [page,setPage]=useState("loading");
