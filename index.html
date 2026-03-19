@@ -113,8 +113,7 @@ async function generateSummaryCanvas(allData, insights, closingNote) {
   const SLIDERS = {1:"impact",2:"pressure",3:"worry"};
   const SLIDER_LBL = {1:"מד השפעה",2:"מד לחץ",3:"מד חשש"};
 
-  // Load font
-  try { await Promise.all([document.fonts.load('700 18px Alef'),document.fonts.load('400 14px Alef')]); } catch(e){}
+  // Skip font pre-loading (can hang on mobile) — canvas uses system font
 
   // Load selected photos
   const loadImg = src => new Promise(res => {
@@ -160,9 +159,9 @@ async function generateSummaryCanvas(allData, insights, closingNote) {
 
     // Header
     if(realDraw){
-      ctx.fillStyle=C.yellow; ctx.font='bold 30px Alef,Arial,sans-serif';
+      ctx.fillStyle=C.yellow; ctx.font='bold 28px Arial,sans-serif';
       ctx.fillText('מנהיגות פועלת 🎯', W-PAD, y+28);
-      ctx.fillStyle=C.muted; ctx.font='15px Alef,Arial,sans-serif';
+      ctx.fillStyle=C.muted; ctx.font='14px Arial,sans-serif';
       ctx.fillText('Leadership in Action – סיכום התהליך', W-PAD, y+54);
     }
     y += 74;
@@ -180,7 +179,7 @@ async function generateSummaryCanvas(allData, insights, closingNote) {
       // Measure card height
       let cardH = INNER + 34 + INNER; // top pad + header row + gap
       if(photo) cardH += 100;
-      ctx.font='13px Alef,Arial,sans-serif';
+      ctx.font='13px Arial,sans-serif';
       qs.forEach(q=>{
         const val=d[q.key];
         if(!val||(Array.isArray(val)&&val.length===0))return;
@@ -199,7 +198,7 @@ async function generateSummaryCanvas(allData, insights, closingNote) {
         ctx.fillStyle=cfg.tagBg; rr(ctx,PAD,y,4,cardH,2); ctx.fill();
 
         // Tag pill
-        ctx.font='bold 11px Alef,Arial,sans-serif';
+        ctx.font='bold 11px Arial,sans-serif';
         const tagTxt='שלב '+s;
         const tW=ctx.measureText(tagTxt).width+20;
         ctx.fillStyle=cfg.tagBg; rr(ctx,PAD+INNER,y+INNER,tW,22,11); ctx.fill();
@@ -208,7 +207,7 @@ async function generateSummaryCanvas(allData, insights, closingNote) {
         ctx.direction='rtl'; ctx.textAlign='right';
 
         // Step title
-        ctx.fillStyle=C.white; ctx.font='bold 19px Alef,Arial,sans-serif';
+        ctx.fillStyle=C.white; ctx.font='bold 18px Arial,sans-serif';
         ctx.fillText(cfg.icon+' '+cfg.title, W-PAD-INNER, y+INNER+15);
       }
       let cy = y + INNER + 34 + 10;
@@ -226,17 +225,17 @@ async function generateSummaryCanvas(allData, insights, closingNote) {
       }
 
       // Questions
-      ctx.font='13px Alef,Arial,sans-serif';
+      ctx.font='13px Arial,sans-serif';
       qs.forEach(q=>{
         const val=d[q.key];
         if(!val||(Array.isArray(val)&&val.length===0))return;
         if(realDraw){
-          ctx.fillStyle=C.muted; ctx.font='11px Alef,Arial,sans-serif';
+          ctx.fillStyle=C.muted; ctx.font='11px Arial,sans-serif';
           ctx.fillText(q.label, W-PAD-INNER, cy+12);
         }
         cy+=16;
         const txt=Array.isArray(val)?val.join(' • '):val;
-        ctx.font='13px Alef,Arial,sans-serif';
+        ctx.font='13px Arial,sans-serif';
         const lines=wrap(ctx,txt,cardW-INNER*2-16);
         const ansH=lines.length*LH+14;
         if(realDraw){
@@ -250,7 +249,7 @@ async function generateSummaryCanvas(allData, insights, closingNote) {
       // Slider badge
       if(sliderVal!==null&&realDraw){
         const btxt=sliderVal+'/5  '+SLIDER_LBL[s];
-        ctx.font='bold 13px Alef,Arial,sans-serif';
+        ctx.font='bold 13px Arial,sans-serif';
         const bw=ctx.measureText(btxt).width+24;
         ctx.fillStyle=C.yellow; rr(ctx,W-PAD-INNER-bw,cy+4,bw,24,12); ctx.fill();
         ctx.fillStyle=C.dark; ctx.textAlign='center'; ctx.direction='ltr';
@@ -263,14 +262,14 @@ async function generateSummaryCanvas(allData, insights, closingNote) {
 
     // Extra sections
     function drawSection(title,text){
-      ctx.font='13px Alef,Arial,sans-serif';
+      ctx.font='13px Arial,sans-serif';
       const lines=wrap(ctx,text,cardW-INNER*2-16);
       const sh=INNER+24+lines.length*LH+14+INNER;
       if(realDraw){
         ctx.fillStyle=C.bgCard; rr(ctx,PAD,y,cardW,sh,14); ctx.fill();
-        ctx.fillStyle=C.yellow; ctx.font='bold 15px Alef,Arial,sans-serif';
+        ctx.fillStyle=C.yellow; ctx.font='bold 15px Arial,sans-serif';
         ctx.fillText(title,W-PAD-INNER,y+INNER+14);
-        ctx.fillStyle=C.white; ctx.font='13px Alef,Arial,sans-serif';
+        ctx.fillStyle=C.white; ctx.font='13px Arial,sans-serif';
         lines.forEach((ln,i)=>ctx.fillText(ln,W-PAD-INNER-8,y+INNER+36+(i+1)*LH-2));
       }
       y+=sh+12;
@@ -523,12 +522,15 @@ function SummaryPage({allData,insights,setInsights,closingNote,setClosingNote,on
   })();
 
   const openShare=async()=>{
+    window.addEventListener("keydown",escHandler);
+    function escHandler(e){if(e.key==="Escape"){setShareModal(false);setGenerating(false);window.removeEventListener("keydown",escHandler);}}
     setGenerating(true); setImgSrc(null); setShareModal(true);
     try{
-      const canvas=await generateSummaryCanvas(allData,insights,closingNote);
+      const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000));
+      const canvas=await Promise.race([generateSummaryCanvas(allData,insights,closingNote),timeout]);
       setImgSrc(canvas.toDataURL('image/jpeg',0.92));
-    }catch(e){console.error(e);}
-    setGenerating(false);
+    }catch(e){console.error('share:',e);}
+    setGenerating(false); window.removeEventListener("keydown",escHandler);
   };
 
   const downloadImg=()=>{
@@ -633,17 +635,34 @@ function SummaryPage({allData,insights,setInsights,closingNote,setClosingNote,on
           <div onClick={e=>e.stopPropagation()} style={{
             background:"#2B2D2F",borderRadius:"20px 20px 0 0",
             padding:"24px 20px 40px",width:"100%",maxWidth:500,maxHeight:"90vh",overflowY:"auto"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <button onClick={()=>setShareModal(false)} style={{background:"none",border:"none",color:C.muted,fontSize:22,cursor:"pointer"}}>✕</button>
+            {/* Sticky close bar */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,
+              position:"sticky",top:0,background:"#2B2D2F",zIndex:10,paddingTop:4,paddingBottom:8}}>
+              <button onClick={()=>{setShareModal(false);setGenerating(false);}} style={{
+                background:"#444",border:"none",color:C.white,fontSize:15,cursor:"pointer",
+                borderRadius:8,padding:"6px 14px",fontFamily:FONT}}>✕ סגור</button>
               <span style={{color:C.white,fontWeight:700,fontSize:17,fontFamily:FONT}}>שתף סיכום</span>
             </div>
 
             {/* Image preview */}
-            <div style={{background:"#1a1a1a",borderRadius:12,padding:12,marginBottom:16,minHeight:120,
+            <div style={{background:"#1a1a1a",borderRadius:12,padding:12,marginBottom:16,minHeight:80,
               display:"flex",alignItems:"center",justifyContent:"center"}}>
-              {generating&&<div style={{color:C.muted,fontFamily:FONT,fontSize:14}}>⏳ מייצר תמונה...</div>}
+              {generating&&<div style={{color:C.muted,fontFamily:FONT,fontSize:14,textAlign:"center"}}>
+                <div style={{fontSize:28,marginBottom:8}}>⏳</div>
+                <div>מייצר תמונה...</div>
+                <button onClick={()=>{setShareModal(false);setGenerating(false);}} style={{
+                  marginTop:12,background:"#555",border:"none",color:C.white,
+                  borderRadius:8,padding:"8px 20px",cursor:"pointer",fontFamily:FONT,fontSize:14}}>
+                  ביטול
+                </button>
+              </div>}
               {!generating&&imgSrc&&(
                 <img src={imgSrc} alt="סיכום" style={{width:"100%",borderRadius:8,display:"block"}}/>
+              )}
+              {!generating&&!imgSrc&&(
+                <div style={{color:C.muted,fontFamily:FONT,fontSize:13,textAlign:"center"}}>
+                  לא הצלחנו לייצר תמונה. השתמש בשיתוף הטקסט למטה.
+                </div>
               )}
             </div>
 
