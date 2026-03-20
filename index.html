@@ -322,29 +322,41 @@ function decodeState(){
   }catch{return null;}
 }
 const GT=["ghp_QfHea2ByZkk","NdkaJGZpi4lFWp","STMpd1cGkGb"].join("");
+const REPO_API="https://api.github.com/repos/iddolavie/leadership-in-action/contents/data/";
 async function saveToGist(data){
   try{
-    const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),8000);
-    const res=await fetch('https://api.github.com/gists',{
-      method:'POST',
+    const id=Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    const json=JSON.stringify(data);
+    const bytes=new TextEncoder().encode(json);
+    const b64=btoa(Array.from(bytes).map(b=>String.fromCharCode(b)).join(''));
+    const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),10000);
+    const res=await fetch(REPO_API+id+".json",{
+      method:'PUT',
       headers:{'Authorization':'token '+GT,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},
-      body:JSON.stringify({public:false,files:{'lia.json':{content:JSON.stringify(data)}}}),
+      body:JSON.stringify({message:'session',content:b64}),
       signal:ctrl.signal
     });
     clearTimeout(t);
-    if(res.ok){const g=await res.json();return g.id||null;}
+    if(res.ok)return id;
   }catch(e){}
   return null;
 }
 async function loadFromGist(id){
   try{
-    const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),8000);
-    const res=await fetch('https://api.github.com/gists/'+id,{
+    const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),10000);
+    const res=await fetch(REPO_API+id+".json",{
       headers:{'Accept':'application/vnd.github.v3+json'},
       signal:ctrl.signal
     });
     clearTimeout(t);
-    if(res.ok){const g=await res.json();const c=g.files&&g.files['lia.json']&&g.files['lia.json'].content;if(c)return JSON.parse(c);}
+    if(res.ok){
+      const g=await res.json();
+      if(g.content){
+        const bin=atob(g.content.replace(/\n/g,''));
+        const bytes=new Uint8Array(Array.from(bin).map(c=>c.charCodeAt(0)));
+        return JSON.parse(new TextDecoder().decode(bytes));
+      }
+    }
   }catch(e){}
   return null;
 }
