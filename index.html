@@ -580,42 +580,33 @@ function SummaryPage({allData,insights,setInsights,closingNote,setClosingNote,on
   const [copyMsg,setCopyMsg]=useState("");
   const [shareModal,setShareModal]=useState(false);
 
-  const doShare=async()=>{
-    setShareModal(false);
-    setTimeout(()=>window.print(),100);
+  const [sharing,setSharing]=useState(false);
+  const getShortUrl=async()=>{
+    const payload={s:allData};if(insights)payload.i=insights;if(closingNote)payload.c=closingNote;
+    const id=await saveToGist(payload);
+    if(id)return APP_URL+"?j="+id;
+    const code=encodeState(allData,insights,closingNote);
+    return code?APP_URL+"?d="+code:APP_URL;
   };
-  const sendEmail=async()=>doShare();
+  const sendWhatsApp=async()=>{
+    setShareModal(false);setSharing(true);
+    const url=await getShortUrl();
+    setSharing(false);
+    window.open("https://wa.me/?text="+encodeURIComponent("סיכום מנהיגות פועלת שלי:\n"+url),"_blank");
+  };
+  const sendEmail=async()=>{
+    setShareModal(false);setSharing(true);
+    const url=await getShortUrl();
+    setSharing(false);
+    window.open("mailto:?subject="+encodeURIComponent("מנהיגות פועלת – סיכום")+"&body="+encodeURIComponent(url),"_blank");
+  };
 
   const openShare=()=>setShareModal(true);
 
-  const downloadImg=()=>{
-    if(!imgSrc)return;
-    const a=document.createElement('a'); a.href=imgSrc;
-    a.download='מנהיגות-פועלת-סיכום.jpg'; a.click();
-  };
-
-  const shareNative=async()=>{
-    if(!imgSrc)return;
-    try{
-      const res=await fetch(imgSrc);
-      const blob=await res.blob();
-      const file=new File([blob],'סיכום.jpg',{type:'image/jpeg'});
-      if(navigator.canShare&&navigator.canShare({files:[file]})){
-        await navigator.share({files:[file],title:'מנהיגות פועלת – סיכום התהליך'});
-        return;
-      }
-    }catch(e){}
-    downloadImg();
-  };
-
-  const sendWhatsApp=async()=>doShare();
-
   const copyLink=async()=>{
-    setShareModal(false);setShareLoading(true);
-    const payload={s:allData};if(insights)payload.i=insights;if(closingNote)payload.c=closingNote;
-    const id=await saveToGist(payload);
-    const url=id?APP_URL+"?j="+id:(()=>{const code=encodeState(allData,insights,closingNote);return code?APP_URL+"?d="+code:APP_URL;})();
-    setShareLoading(false);
+    setShareModal(false);setSharing(true);
+    const url=await getShortUrl();
+    setSharing(false);
     const tryOld=()=>{
       const el=document.createElement("textarea");el.value=url;
       el.style.position="fixed";el.style.opacity="0";
@@ -673,6 +664,8 @@ function SummaryPage({allData,insights,setInsights,closingNote,setClosingNote,on
   return(
     <div style={{minHeight:"100vh",background:C.bg,padding:"44px 20px 28px",direction:"rtl",fontFamily:FONT}}>
 
+      {sharing&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000}}><div style={{color:"#fff",fontSize:18,fontFamily:FONT}}>שנייה...</div></div>}
+
       {/* Share Modal */}
       {shareModal&&(
         <div onClick={()=>setShareModal(false)} style={{
@@ -687,7 +680,7 @@ function SummaryPage({allData,insights,setInsights,closingNote,setClosingNote,on
                 borderRadius:8,padding:"6px 14px",fontFamily:FONT}}>✕ סגור</button>
               <span style={{color:C.white,fontWeight:700,fontSize:17,fontFamily:FONT}}>שתף סיכום</span>
             </div>
-            <button style={btnR} onClick={()=>doShare()}>
+            <button style={btnR} onClick={sendWhatsApp}>
               <div style={iBox("#25D366")}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
@@ -698,7 +691,7 @@ function SummaryPage({allData,insights,setInsights,closingNote,setClosingNote,on
                 <div style={{fontWeight:700,fontSize:15}}>WhatsApp</div>
               </div>
             </button>
-            <button style={btnR} onClick={()=>doShare()}>
+            <button style={btnR} onClick={sendEmail}>
               <div style={iBox("#4A6FA5")}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
